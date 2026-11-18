@@ -5,6 +5,9 @@ from database import engine, Base, get_db
 from models import User, Candidate, Criterion, Score
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Dict
+from pathlib import Path
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import RedirectResponse
 from scoring import build_ranking, weighted_total
 from auth import (hash_password, verify_password, create_token,
                   get_current_user, require_admin)
@@ -42,9 +45,9 @@ class JudgeIn(BaseModel):
 
 
 # ---------- basics ----------
-@app.get("/")
+@app.get("/", include_in_schema=False)
 def home():
-    return {"status": "running"}
+    return RedirectResponse("/app/")
 
 
 @app.post("/seed")
@@ -224,3 +227,6 @@ def my_scores(db: Session = Depends(get_db), user: User = Depends(get_current_us
     return [{"candidate_id": cid, "marks": m,
              "weighted_total": round(weighted_total(m, weights), 2)}
             for cid, m in by_candidate.items()]
+
+FRONTEND = Path(__file__).resolve().parent.parent / "frontend"
+app.mount("/app", StaticFiles(directory=FRONTEND, html=True), name="app")

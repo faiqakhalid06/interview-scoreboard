@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Interview Scoreboard (connected)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F5F6F8;--surface:#FFFFFF;--ink:#101828;--muted:#5B6475;--line:#E1E4EA;--accent:#2F4BFF;--accent-ink:#FFFFFF;--soft:#E9ECFF;--ok:#12805C;--bad:#B42318;
+  --head:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;--body:'Public Sans','Segoe UI',system-ui,sans-serif;
+  color-scheme:light;box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0E121B;--surface:#171C28;--ink:#EEF1F6;--muted:#9AA3B5;--line:#2A3142;--accent:#7C8DFF;--accent-ink:#0E121B;--soft:#232B4D;--ok:#4CC9A0;--bad:#FF8A80;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0E121B;--surface:#171C28;--ink:#EEF1F6;--muted:#9AA3B5;--line:#2A3142;--accent:#7C8DFF;--accent-ink:#0E121B;--soft:#232B4D;--ok:#4CC9A0;--bad:#FF8A80;color-scheme:dark}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.5 var(--body)}
+.wrap{max-width:920px;margin:0 auto;padding:20px 16px 48px}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:18px}
+h1{font:700 26px/1.1 var(--head);margin:0;letter-spacing:-.02em}
+h2{font:600 19px/1.2 var(--head);margin:0 0 10px}
+.who{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+select,input[type=text],input[type=number],input[type=password]{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-height:38px}
+select:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+nav{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:18px}
+nav button{background:none;border:0;border-bottom:3px solid transparent;padding:10px 14px;font:600 14px var(--body);color:var(--muted);cursor:pointer;margin-bottom:-1px}
+nav button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--accent)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:560px}
+th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font:600 12px var(--body);color:var(--muted)}
+tr:last-child td{border-bottom:0}
+.rank{font:700 28px/1 var(--head);width:48px;color:var(--muted)}
+tr.first .rank{color:var(--accent)}
+.bar{height:8px;background:var(--soft);border-radius:99px;overflow:hidden;min-width:110px}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:99px}
+.num{font:600 18px var(--head);font-variant-numeric:tabular-nums}
+.sub{color:var(--muted);font-size:13px}
+.btn{font:600 14px var(--body);border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:9px 14px;cursor:pointer;min-height:38px}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.danger{color:var(--bad)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pill{font-size:12px;font-weight:600;padding:3px 9px;border-radius:99px;background:var(--soft);color:var(--ink)}
+.pill.done{background:transparent;border:1px solid var(--ok);color:var(--ok)}
+.list{list-style:none;margin:0;padding:0}
+.list li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.list li:last-child{border-bottom:0}
+.crit{padding:12px 0;border-bottom:1px solid var(--line)}
+.crit:last-of-type{border-bottom:0}
+.crit .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+input[type=range]{width:100%;accent-color:var(--accent);margin:8px 0 0}
+.msg{padding:10px 12px;border-radius:8px;background:var(--soft);font-size:14px;margin-bottom:14px}
+.msg.err{background:transparent;border:1px solid var(--bad);color:var(--bad)}
+.empty{color:var(--muted);padding:12px 0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:700px){.grid2{grid-template-columns:1fr}h1{font-size:22px}}
+@media (prefers-reduced-motion:no-preference){.bar i{transition:width .4s ease}}
+
+[hidden]{display:none!important}
+#login{max-width:380px;margin:36px auto}
+#login label{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
+#login input{width:100%}
+.who{gap:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Interview Scoreboard</h1>
+    <div class="who" id="who"></div>
+  </header>
+  <div id="msg" aria-live="polite"></div>
+
+  <section class="card" id="login" hidden>
+    <h2>Log in</h2>
+    <label for="u">Username</label><input type="text" id="u" autocomplete="username">
+    <label for="p">Password</label><input type="password" id="p" autocomplete="current-password">
+    <div style="margin-top:14px"><button class="btn primary" data-act="login">Log in</button></div>
+    <p class="sub" style="margin-top:12px">Demo logins: admin / admin123 or ahmed / judge123</p>
+  </section>
+
+  <div id="app" hidden>
+    <nav id="tabs" role="tablist"></nav>
+    <main id="main"></main>
+  </div>
+</div>
+
+<script>
+const API='http://127.0.0.1:8000';
+let tok=null,user=null,tab='ranking',D={cands:[],crits:[],judges:[],mine:[],rank:[]},draft=null;
+try{tok=localStorage.getItem('sb_tok');user=JSON.parse(localStorage.getItem('sb_user')||'null')}catch(e){}
+if(!user)tok=null;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const f1=n=>n===null||n===undefined?'–':Number(n).toFixed(1);
+const f2=n=>n===null||n===undefined?'–':Number(n).toFixed(2);
+
+function setMsg(t,err){$('msg').innerHTML=t?`<div class="msg${err?' err':''}">${esc(t)}</div>`:''}
+
+async function api(path,method='GET',body){
+  let r;
+  try{r=await fetch(API+path,{method,headers:Object.assign({'Content-Type':'application/json'},tok?{Authorization:'Bearer '+tok}:{}),body:body?JSON.stringify(body):undefined})}
+  catch(e){throw new Error('Cannot reach the backend. Is uvicorn running on port 8000?')}
+  let j=null;try{j=await r.json()}catch(e){}
+  if(!r.ok){
+    if(r.status===401&&tok&&path!=='/login'){logout('Session expired. Please log in again.');throw new Error('')}
+    let d=j&&j.detail;if(Array.isArray(d))d=d.map(x=>x.msg).join(', ');
+    throw new Error(d||'Request failed ('+r.status+')');
+  }
+  return j;
+}
+async function run(fn){try{await fn()}catch(e){if(e.message)setMsg(e.message,true)}}
+
+function logout(m){
+  tok=null;user=null;draft=null;
+  try{localStorage.removeItem('sb_tok');localStorage.removeItem('sb_user')}catch(e){}
+  render();setMsg(m||'',true);
+}
+
+const wTotal=marks=>{
+  const tw=D.crits.reduce((a,c)=>a+Number(c.weight),0);
+  return tw?D.crits.reduce((a,c)=>a+(Number(marks[c.id])||0)*Number(c.weight),0)/tw:0;
+};
+const mineOf=id=>D.mine.find(x=>x.candidate_id===id);
+
+async function load(){
+  await run(async()=>{
+    if(tab==='ranking')D.rank=await api('/ranking');
+    else if(tab==='score'&&user.role==='judge'){[D.cands,D.crits,D.mine]=await Promise.all([api('/candidates'),api('/criteria'),api('/my-scores')])}
+    else if(tab==='setup'&&user.role==='admin'){[D.cands,D.crits,D.judges]=await Promise.all([api('/candidates'),api('/criteria'),api('/judges')])}
+    render();
+  });
+}
+
+// ---- views ----
+function viewRank(){
+  if(!D.rank.length)return '<div class="card empty">No candidates yet. The admin can add some in Setup.</div>';
+  const rows=D.rank.map((r,i)=>`<tr class="${r.rank===1?'first':''}"><td class="rank">${r.rank??'–'}</td>
+    <td><strong>${esc(r.name)}</strong><div class="sub">${esc(r.position)}</div></td>
+    <td class="sub">${r.judges_scored} judge${r.judges_scored===1?'':'s'}</td>
+    <td style="width:34%"><div class="row" style="flex-wrap:nowrap"><span class="num">${f2(r.final_score)}</span><div class="bar" style="flex:1"><i style="width:${r.final_score===null?0:r.final_score*10}%"></i></div></div></td></tr>`).join('');
+  return `<div class="card"><div class="row" style="justify-content:space-between"><h2>Final ranking</h2><span class="sub">Updates every 5 seconds</span></div>
+  <div class="scroll"><table><thead><tr><th></th><th>Candidate</th><th>Scored by</th><th>Final score (out of 10)</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+}
+
+function viewScore(){
+  if(user.role!=='judge')return '<div class="card empty">Admins don’t score. Log in as a judge to enter marks.</div>';
+  if(draft)return viewForm();
+  if(!D.cands.length)return '<div class="card empty">No candidates to score yet.</div>';
+  const items=D.cands.map(c=>{
+    const m=mineOf(c.id);
+    return `<li><div><strong>${esc(c.name)}</strong><div class="sub">${esc(c.position)}</div></div>
+      <div class="row">${m?`<span class="pill done">Submitted ${f1(m.weighted_total)}</span><button class="btn" data-act="view" data-id="${c.id}">View marks</button>`
+      :`<span class="pill">Not scored</span><button class="btn primary" data-act="start" data-id="${c.id}">Score</button>`}</div></li>`;
+  }).join('');
+  return `<div class="card"><h2>Candidates to score</h2><ul class="list">${items}</ul></div>`;
+}
+
+function viewForm(){
+  const c=D.cands.find(x=>x.id===draft.id);
+  const rows=D.crits.map(k=>{
+    const v=draft.marks[k.id]??5;
+    return `<div class="crit"><div class="top"><label for="m_${k.id}"><strong>${esc(k.name)}</strong> <span class="sub">weight ${k.weight}%</span></label><span class="num" id="o_${k.id}">${v}</span></div>
+      <input type="range" min="0" max="10" step="1" value="${v}" id="m_${k.id}" data-crit="${k.id}" ${draft.locked?'disabled':''}></div>`;
+  }).join('');
+  return `<div class="card"><div class="row" style="justify-content:space-between"><div><h2 style="margin:0">${esc(c.name)}</h2><div class="sub">${esc(c.position)}</div></div>
+    <div style="text-align:right"><div class="sub">Weighted total</div><div class="num" id="tot" style="font-size:28px">${f1(wTotal(draft.marks))}</div></div></div>
+    <div style="margin-top:8px">${rows}</div>
+    <div class="row" style="margin-top:14px">${draft.locked?'<span class="sub">Submitted. Marks are locked.</span>':'<button class="btn primary" data-act="submit">Submit marks</button>'}
+    <button class="btn" data-act="back">Back</button></div></div>`;
+}
+
+function viewSetup(){
+  if(user.role!=='admin')return '<div class="card empty">Admin only.</div>';
+  const sum=D.crits.reduce((a,c)=>a+Number(c.weight),0);
+  const del=(a,id,n)=>`<button class="btn danger" data-act="${a}" data-id="${id}" aria-label="Remove ${esc(n)}">Remove</button>`;
+  return `<div class="grid2">
+  <div class="card"><h2>Criteria and weights</h2>
+    <ul class="list">${D.crits.map(c=>`<li><span>${esc(c.name)}</span><span class="row"><input type="number" min="0" max="100" value="${c.weight}" data-w="${c.id}" style="width:72px" aria-label="Weight for ${esc(c.name)}">%${del('delcrit',c.id,c.name)}</span></li>`).join('')}</ul>
+    <div class="sub" style="margin:8px 0">Weights add up to ${sum}%.${sum===100?'':' Totals are scaled, but 100% is easier to read.'} Changing criteria affects all judges’ scores.</div>
+    <div class="row"><input type="text" id="nc" placeholder="New criterion" aria-label="New criterion"><button class="btn" data-act="addcrit">Add</button></div></div>
+  <div class="card"><h2>Judges</h2>
+    <ul class="list">${D.judges.map(j=>`<li><span>${esc(j.name)} <span class="sub">@${esc(j.username)}</span></span>${del('deljudge',j.id,j.name)}</li>`).join('')||'<li class="empty">No judges yet.</li>'}</ul>
+    <div class="row" style="margin-top:8px"><input type="text" id="jn" placeholder="Name" aria-label="Judge name" style="width:120px"><input type="text" id="ju" placeholder="Username" aria-label="Username" style="width:110px"><input type="password" id="jp" placeholder="Password" aria-label="Password" style="width:110px"><button class="btn" data-act="addjudge">Add</button></div></div>
+  <div class="card" style="grid-column:1/-1"><h2>Candidates</h2>
+    <ul class="list">${D.cands.map(c=>`<li><span><strong>${esc(c.name)}</strong> <span class="sub">${esc(c.position)}</span></span>${del('delcand',c.id,c.name)}</li>`).join('')||'<li class="empty">No candidates yet.</li>'}</ul>
+    <div class="row" style="margin-top:8px"><input type="text" id="cn" placeholder="Candidate name" aria-label="Candidate name"><input type="text" id="cp" placeholder="Position" aria-label="Position"><button class="btn" data-act="addcand">Add</button></div></div>
+  </div>`;
+}
+
+function render(){
+  $('who').innerHTML=user&&tok?`${esc(user.name)} <span class="pill">${esc(user.role)}</span> <button class="btn" data-act="logout">Log out</button>`:'';
+  $('login').hidden=!!tok;$('app').hidden=!tok;
+  if(!tok)return;
+  const t=[['ranking','Ranking'],['score','Score']];
+  if(user.role==='admin')t.push(['setup','Setup']);
+  if(!t.find(x=>x[0]===tab))tab='ranking';
+  $('tabs').innerHTML=t.map(([k,l])=>`<button role="tab" aria-selected="${tab===k}" data-tab="${k}">${l}</button>`).join('');
+  $('main').innerHTML=tab==='ranking'?viewRank():tab==='score'?viewScore():viewSetup();
+}
+
+// ---- events ----
+$('tabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(!b)return;tab=b.dataset.tab;draft=null;setMsg('');load()});
+$('p').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+async function doLogin(){
+  await run(async()=>{
+    const r=await api('/login','POST',{username:$('u').value.trim(),password:$('p').value});
+    tok=r.token;user={name:r.name,role:r.role};
+    try{localStorage.setItem('sb_tok',tok);localStorage.setItem('sb_user',JSON.stringify(user))}catch(e){}
+    $('p').value='';tab='ranking';setMsg('');render();load();
+  });
+}
+document.addEventListener('input',e=>{
+  const k=e.target.dataset&&e.target.dataset.crit;
+  if(k&&draft&&!draft.locked){draft.marks[k]=Number(e.target.value);$('o_'+k).textContent=e.target.value;$('tot').textContent=f1(wTotal(draft.marks))}
+});
+document.addEventListener('change',e=>{
+  const id=e.target.dataset&&e.target.dataset.w;
+  if(id)run(async()=>{
+    const v=Math.max(0,Math.min(100,Number(e.target.value)||0));
+    await api('/criteria/'+id,'PUT',{weight:v});setMsg('Weight updated.');await load();
+  });
+});
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]');if(!b)return;
+  const a=b.dataset.act,id=Number(b.dataset.id);
+  const v=i=>($(i)||{value:''}).value.trim();
+  if(a==='login')return doLogin();
+  if(a==='logout')return logout('');
+  setMsg('');
+  if(a==='start'){draft={id,marks:Object.fromEntries(D.crits.map(c=>[c.id,5]))};return render()}
+  if(a==='view'){draft={id,marks:Object.assign({},mineOf(id).marks),locked:true};return render()}
+  if(a==='back'){draft=null;return render()}
+  run(async()=>{
+    if(a==='submit'){
+      const r=await api('/scores','POST',{candidate_id:draft.id,marks:draft.marks});
+      draft=null;setMsg('Marks submitted. Your weighted total was '+f1(r.weighted_total)+'.');
+    }
+    else if(a==='addcrit'){if(!v('nc'))throw new Error('Enter a criterion name.');await api('/criteria','POST',{name:v('nc'),weight:10})}
+    else if(a==='delcrit'){await api('/criteria/'+id,'DELETE')}
+    else if(a==='addjudge'){if(!v('jn')||!v('ju')||v('jp').length<4)throw new Error('Judge needs a name, a username and a password of 4+ characters.');await api('/judges','POST',{name:v('jn'),username:v('ju'),password:$('jp').value})}
+    else if(a==='deljudge'){await api('/judges/'+id,'DELETE')}
+    else if(a==='addcand'){if(!v('cn'))throw new Error('Enter a candidate name.');await api('/candidates','POST',{name:v('cn'),position:v('cp')||'Unspecified role'})}
+    else if(a==='delcand'){await api('/candidates/'+id,'DELETE')}
+    await load();
+  });
+});
+
+// live ranking refresh
+setInterval(()=>{
+  if(tok&&tab==='ranking'&&!document.hidden)api('/ranking').then(r=>{D.rank=r;if(tab==='ranking')$('main').innerHTML=viewRank()}).catch(()=>{});
+},5000);
+
+render();
+if(tok)load();
+</script>
+</body>
+</html>

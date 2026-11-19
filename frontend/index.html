@@ -81,7 +81,6 @@ input[type=range]{width:100%;accent-color:var(--accent);margin:8px 0 0}
     <label for="u">Username</label><input type="text" id="u" autocomplete="username">
     <label for="p">Password</label><input type="password" id="p" autocomplete="current-password">
     <div style="margin-top:14px"><button class="btn primary" data-act="login">Log in</button></div>
-    <p class="sub" style="margin-top:12px">Demo logins: admin / admin123 or ahmed / judge123</p>
   </section>
 
   <div id="app" hidden>
@@ -91,7 +90,7 @@ input[type=range]{width:100%;accent-color:var(--accent);margin:8px 0 0}
 </div>
 
 <script>
-const API='http://127.0.0.1:8000';
+const API=location.protocol==='file:'?'http://127.0.0.1:8000':'';
 let tok=null,user=null,tab='ranking',D={cands:[],crits:[],judges:[],mine:[],rank:[]},draft=null;
 try{tok=localStorage.getItem('sb_tok');user=JSON.parse(localStorage.getItem('sb_user')||'null')}catch(e){}
 if(!user)tok=null;
@@ -115,6 +114,16 @@ async function api(path,method='GET',body){
   return j;
 }
 async function run(fn){try{await fn()}catch(e){if(e.message)setMsg(e.message,true)}}
+
+async function downloadPdf(){
+  let r;
+  try{r=await fetch(API+'/export/pdf',{headers:{Authorization:'Bearer '+tok}})}
+  catch(e){throw new Error('Cannot reach the backend. Is it running?')}
+  if(!r.ok)throw new Error('Could not create the PDF ('+r.status+')');
+  const url=URL.createObjectURL(await r.blob());
+  const l=document.createElement('a');l.href=url;l.download='interview-results.pdf';
+  document.body.appendChild(l);l.click();l.remove();URL.revokeObjectURL(url);
+}
 
 function logout(m){
   tok=null;user=null;draft=null;
@@ -144,7 +153,7 @@ function viewRank(){
     <td><strong>${esc(r.name)}</strong><div class="sub">${esc(r.position)}</div></td>
     <td class="sub">${r.judges_scored} judge${r.judges_scored===1?'':'s'}</td>
     <td style="width:34%"><div class="row" style="flex-wrap:nowrap"><span class="num">${f2(r.final_score)}</span><div class="bar" style="flex:1"><i style="width:${r.final_score===null?0:r.final_score*10}%"></i></div></div></td></tr>`).join('');
-  return `<div class="card"><div class="row" style="justify-content:space-between"><h2>Final ranking</h2><span class="sub">Updates every 5 seconds</span></div>
+  return `<div class="card"><div class="row" style="justify-content:space-between"><h2>Final ranking</h2><span class="row"><span class="sub">Updates every 5 seconds</span>${user.role==='admin'?'<button class="btn primary" data-act="pdf">Download PDF</button>':''}</span></div>
   <div class="scroll"><table><thead><tr><th></th><th>Candidate</th><th>Scored by</th><th>Final score (out of 10)</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
 }
 
@@ -232,6 +241,7 @@ document.addEventListener('click',e=>{
   const v=i=>($(i)||{value:''}).value.trim();
   if(a==='login')return doLogin();
   if(a==='logout')return logout('');
+  if(a==='pdf')return run(downloadPdf);
   setMsg('');
   if(a==='start'){draft={id,marks:Object.fromEntries(D.crits.map(c=>[c.id,5]))};return render()}
   if(a==='view'){draft={id,marks:Object.assign({},mineOf(id).marks),locked:true};return render()}

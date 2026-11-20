@@ -151,7 +151,7 @@ async function load(){
 
 // ---- views ----
 function viewRank(){
-  if(!D.rank.length)return '<div class="card empty">No candidates yet. The admin can add some in Setup.</div>';
+  if(!D.rank.length)return `<div class="card empty">No candidates yet. ${user.role==='admin'?'Add some in Setup, or <button class="btn" data-act="seed">Load demo data</button>':'The admin will add them soon.'}</div>`;
   const rows=D.rank.map((r,i)=>`<tr class="${r.rank===1?'first':''}"><td class="rank">${r.rank??'–'}</td>
     <td><strong>${esc(r.name)}</strong><div class="sub">${esc(r.position)}</div></td>
     <td class="sub">${r.judges_scored} judge${r.judges_scored===1?'':'s'}</td>
@@ -262,6 +262,7 @@ document.addEventListener('click',e=>{
   if(a==='start'){draft={id,marks:Object.fromEntries(D.crits.map(c=>[c.id,5]))};return render()}
   if(a==='view'){draft={id,marks:Object.assign({},mineOf(id).marks),locked:true};return render()}
   if(a==='back'){draft=null;return render()}
+  if(a==='seed')return run(async()=>{const r=await api('/seed','POST');setMsg(r.message);await load()});
   if(['delcrit','deljudge','delcand'].includes(a)&&!confirm('Remove this item and its scores? This cannot be undone.'))return;
   if(a==='resetjudge'){const np=prompt('New password for this judge (6+ characters):');if(!np)return;return run(async()=>{await api('/judges/'+id+'/password','PUT',{password:np});setMsg('Judge password updated.')})}
   if(a==='saveacct')return run(async()=>{

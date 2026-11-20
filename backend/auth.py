@@ -16,6 +16,9 @@ bearer = HTTPBearer()
 SECRET = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 TOKEN_HOURS = 12
 
+if os.environ.get("DATABASE_URL") and SECRET == "dev-secret-change-me":
+    raise RuntimeError("Set the SECRET_KEY environment variable before deploying.")
+
 
 def hash_password(password: str) -> str:
     salt = os.urandom(16)

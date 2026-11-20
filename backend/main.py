@@ -21,6 +21,8 @@ Base.metadata.create_all(bind=engine)
 
 def ensure_admin():
     """Create the first admin if none exists. Set ADMIN_USERNAME and ADMIN_PASSWORD when deploying."""
+    if os.environ.get("DATABASE_URL") and not os.environ.get("ADMIN_PASSWORD"):
+        raise RuntimeError("Set ADMIN_USERNAME and ADMIN_PASSWORD environment variables before deploying.")
     db = SessionLocal()
     try:
         if not db.query(User).filter(User.role == "admin").first():
@@ -34,7 +36,11 @@ def ensure_admin():
 
 
 ensure_admin()
-app = FastAPI(title="Interview Scoreboard")
+HIDE_DOCS = bool(os.environ.get("HIDE_DOCS"))  # set HIDE_DOCS=1 when deployed
+app = FastAPI(title="Interview Scoreboard",
+              docs_url=None if HIDE_DOCS else "/docs",
+              redoc_url=None,
+              openapi_url=None if HIDE_DOCS else "/openapi.json")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 

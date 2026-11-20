@@ -1,3 +1,4 @@
 venv/
 __pycache__/
 scoreboard.db
+start-public.bat

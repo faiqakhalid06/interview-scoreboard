@@ -1,11 +1,20 @@
-import hashlib, hmac, os, secrets
+import base64
+import hashlib
+import hmac
+import os
+import time
+
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer
+
 from database import get_db
 from models import User
 
 bearer = HTTPBearer()
-sessions = {}  # token -> user_id (cleared when the server restarts)
+
+# Set SECRET_KEY as an environment variable when you deploy.
+SECRET = os.environ.get("SECRET_KEY", "dev-secret-change-me")
+TOKEN_HOURS = 12
 
 
 def hash_password(password: str) -> str:
@@ -23,14 +32,28 @@ def verify_password(password: str, stored: str) -> bool:
     return hmac.compare_digest(h.hex(), h_hex)
 
 
+def _sign(payload: str) -> str:
+    return hmac.new(SECRET.encode(), payload.encode(), hashlib.sha256).hexdigest()
+
+
 def create_token(user_id: int) -> str:
-    token = secrets.token_hex(16)
-    sessions[token] = user_id
-    return token
+    payload = f"{user_id}:{int(time.time()) + TOKEN_HOURS * 3600}"
+    return base64.urlsafe_b64encode(f"{payload}:{_sign(payload)}".encode()).decode()
+
+
+def read_token(token: str):
+    try:
+        raw = base64.urlsafe_b64decode(token.encode()).decode()
+        uid, exp, sig = raw.split(":")
+        if hmac.compare_digest(sig, _sign(f"{uid}:{exp}")) and int(exp) > time.time():
+            return int(uid)
+    except Exception:
+        pass
+    return None
 
 
 def get_current_user(creds=Depends(bearer), db=Depends(get_db)):
-    user_id = sessions.get(creds.credentials)
+    user_id = read_token(creds.credentials)
     user = db.get(User, user_id) if user_id else None
     if not user:
         raise HTTPException(status_code=401, detail="Not logged in")

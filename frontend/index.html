@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Interview Scoreboard (connected)</title>
+<title>Interview Scoreboard</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%93%8B%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -62,6 +63,7 @@ input[type=range]{width:100%;accent-color:var(--accent);margin:8px 0 0}
 @media (prefers-reduced-motion:no-preference){.bar i{transition:width .4s ease}}
 
 [hidden]{display:none!important}
+.fl{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
 #login{max-width:380px;margin:36px auto}
 #login label{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
 #login input{width:100%}
@@ -80,6 +82,7 @@ input[type=range]{width:100%;accent-color:var(--accent);margin:8px 0 0}
     <h2>Log in</h2>
     <label for="u">Username</label><input type="text" id="u" autocomplete="username">
     <label for="p">Password</label><input type="password" id="p" autocomplete="current-password">
+    <div class="row" style="margin-top:10px"><input type="checkbox" id="sp" style="width:auto;min-height:0"><label for="sp" style="margin:0">Show password</label></div>
     <div style="margin-top:14px"><button class="btn primary" data-act="login">Log in</button></div>
   </section>
 
@@ -194,12 +197,23 @@ function viewSetup(){
     <div class="sub" style="margin:8px 0">Weights add up to ${sum}%.${sum===100?'':' Totals are scaled, but 100% is easier to read.'} Changing criteria affects all judges’ scores.</div>
     <div class="row"><input type="text" id="nc" placeholder="New criterion" aria-label="New criterion"><button class="btn" data-act="addcrit">Add</button></div></div>
   <div class="card"><h2>Judges</h2>
-    <ul class="list">${D.judges.map(j=>`<li><span>${esc(j.name)} <span class="sub">@${esc(j.username)}</span></span>${del('deljudge',j.id,j.name)}</li>`).join('')||'<li class="empty">No judges yet.</li>'}</ul>
+    <ul class="list">${D.judges.map(j=>`<li><span>${esc(j.name)} <span class="sub">@${esc(j.username)}</span></span><span class="row"><button class="btn" data-act="resetjudge" data-id="${j.id}">Reset password</button>${del('deljudge',j.id,j.name)}</span></li>`).join('')||'<li class="empty">No judges yet.</li>'}</ul>
     <div class="row" style="margin-top:8px"><input type="text" id="jn" placeholder="Name" aria-label="Judge name" style="width:120px"><input type="text" id="ju" placeholder="Username" aria-label="Username" style="width:110px"><input type="password" id="jp" placeholder="Password" aria-label="Password" style="width:110px"><button class="btn" data-act="addjudge">Add</button></div></div>
   <div class="card" style="grid-column:1/-1"><h2>Candidates</h2>
     <ul class="list">${D.cands.map(c=>`<li><span><strong>${esc(c.name)}</strong> <span class="sub">${esc(c.position)}</span></span>${del('delcand',c.id,c.name)}</li>`).join('')||'<li class="empty">No candidates yet.</li>'}</ul>
     <div class="row" style="margin-top:8px"><input type="text" id="cn" placeholder="Candidate name" aria-label="Candidate name"><input type="text" id="cp" placeholder="Position" aria-label="Position"><button class="btn" data-act="addcand">Add</button></div></div>
   </div>`;
+}
+
+function viewAccount(){
+  const pw=(id,l,ac)=>`<label class="fl" for="${id}">${l}</label><input type="password" id="${id}" autocomplete="${ac}" style="width:100%">`;
+  return `<div class="card" style="max-width:460px"><h2>Account</h2>
+    <div class="sub">Signed in as <strong>${esc(user.username||user.name)}</strong> (${esc(user.role)})</div>
+    ${pw('ac','Current password (required)','current-password')}
+    <label class="fl" for="an">New username (optional)</label><input type="text" id="an" autocomplete="username" style="width:100%">
+    ${pw('ap','New password (optional, 6+ characters)','new-password')}
+    ${pw('ap2','Repeat new password','new-password')}
+    <div style="margin-top:14px"><button class="btn primary" data-act="saveacct">Save changes</button></div></div>`;
 }
 
 function render(){
@@ -208,18 +222,20 @@ function render(){
   if(!tok)return;
   const t=[['ranking','Ranking'],['score','Score']];
   if(user.role==='admin')t.push(['setup','Setup']);
+  t.push(['account','Account']);
   if(!t.find(x=>x[0]===tab))tab='ranking';
   $('tabs').innerHTML=t.map(([k,l])=>`<button role="tab" aria-selected="${tab===k}" data-tab="${k}">${l}</button>`).join('');
-  $('main').innerHTML=tab==='ranking'?viewRank():tab==='score'?viewScore():viewSetup();
+  $('main').innerHTML=tab==='ranking'?viewRank():tab==='score'?viewScore():tab==='account'?viewAccount():viewSetup();
 }
 
 // ---- events ----
 $('tabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(!b)return;tab=b.dataset.tab;draft=null;setMsg('');load()});
+$('sp').addEventListener('change',e=>{$('p').type=e.target.checked?'text':'password'});
 $('p').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
 async function doLogin(){
   await run(async()=>{
     const r=await api('/login','POST',{username:$('u').value.trim(),password:$('p').value});
-    tok=r.token;user={name:r.name,role:r.role};
+    tok=r.token;user={name:r.name,role:r.role,username:r.username};
     try{localStorage.setItem('sb_tok',tok);localStorage.setItem('sb_user',JSON.stringify(user))}catch(e){}
     $('p').value='';tab='ranking';setMsg('');render();load();
   });
@@ -246,6 +262,17 @@ document.addEventListener('click',e=>{
   if(a==='start'){draft={id,marks:Object.fromEntries(D.crits.map(c=>[c.id,5]))};return render()}
   if(a==='view'){draft={id,marks:Object.assign({},mineOf(id).marks),locked:true};return render()}
   if(a==='back'){draft=null;return render()}
+  if(['delcrit','deljudge','delcand'].includes(a)&&!confirm('Remove this item and its scores? This cannot be undone.'))return;
+  if(a==='resetjudge'){const np=prompt('New password for this judge (6+ characters):');if(!np)return;return run(async()=>{await api('/judges/'+id+'/password','PUT',{password:np});setMsg('Judge password updated.')})}
+  if(a==='saveacct')return run(async()=>{
+    const body={current_password:$('ac').value},nn=v('an'),np=$('ap').value;
+    if(!body.current_password)throw new Error('Enter your current password.');
+    if(np&&np!==$('ap2').value)throw new Error('The new passwords do not match.');
+    if(nn)body.new_username=nn;if(np)body.new_password=np;
+    const r=await api('/account','POST',body);
+    user.username=r.username;try{localStorage.setItem('sb_user',JSON.stringify(user))}catch(e){}
+    setMsg('Account updated.');render();
+  });
   run(async()=>{
     if(a==='submit'){
       const r=await api('/scores','POST',{candidate_id:draft.id,marks:draft.marks});
@@ -253,7 +280,7 @@ document.addEventListener('click',e=>{
     }
     else if(a==='addcrit'){if(!v('nc'))throw new Error('Enter a criterion name.');await api('/criteria','POST',{name:v('nc'),weight:10})}
     else if(a==='delcrit'){await api('/criteria/'+id,'DELETE')}
-    else if(a==='addjudge'){if(!v('jn')||!v('ju')||v('jp').length<4)throw new Error('Judge needs a name, a username and a password of 4+ characters.');await api('/judges','POST',{name:v('jn'),username:v('ju'),password:$('jp').value})}
+    else if(a==='addjudge'){if(!v('jn')||!v('ju')||v('jp').length<6)throw new Error('Judge needs a name, a username and a password of 6+ characters.');await api('/judges','POST',{name:v('jn'),username:v('ju'),password:$('jp').value})}
     else if(a==='deljudge'){await api('/judges/'+id,'DELETE')}
     else if(a==='addcand'){if(!v('cn'))throw new Error('Enter a candidate name.');await api('/candidates','POST',{name:v('cn'),position:v('cp')||'Unspecified role'})}
     else if(a==='delcand'){await api('/candidates/'+id,'DELETE')}
